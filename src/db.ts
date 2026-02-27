@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 
 import { DB_NAME, DB_VERSION } from './config.js';
-import type { StoredMessage, Task, ConfigEntry, Session, ConversationMessage } from './types.js';
+import type { StoredMessage, Task, ConfigEntry, Session, ConversationMessage, Skill } from './types.js';
 
 let db: IDBDatabase | null = null;
 
@@ -39,6 +39,12 @@ export function openDatabase(): Promise<IDBDatabase> {
       // Config store (key-value)
       if (!database.objectStoreNames.contains('config')) {
         database.createObjectStore('config', { keyPath: 'key' });
+      }
+
+      // Skills store
+      if (!database.objectStoreNames.contains('skills')) {
+        const skillStore = database.createObjectStore('skills', { keyPath: 'id' });
+        skillStore.createIndex('by-enabled', 'enabled');
       }
     };
 
@@ -286,6 +292,45 @@ export function clearGroupMessages(groupId: string): Promise<void> {
       } else {
         resolve();
       }
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Skills
+// ---------------------------------------------------------------------------
+
+export function saveSkill(skill: Skill): Promise<void> {
+  const record = { ...skill, enabled: skill.enabled ? 1 : 0 };
+  return txPromise('skills', 'readwrite', (store) =>
+    store.put(record),
+  ).then(() => undefined);
+}
+
+export function deleteSkill(id: string): Promise<void> {
+  return txPromise('skills', 'readwrite', (store) =>
+    store.delete(id),
+  ).then(() => undefined);
+}
+
+export function getAllSkills(): Promise<Skill[]> {
+  return txPromise('skills', 'readonly', (store) =>
+    store.getAll(),
+  ).then((skills: any[]) =>
+    skills.map((s) => ({ ...s, enabled: !!s.enabled })),
+  );
+}
+
+export function getEnabledSkills(): Promise<Skill[]> {
+  return new Promise((resolve, reject) => {
+    const tx = getDb().transaction('skills', 'readonly');
+    const store = tx.objectStore('skills');
+    const index = store.index('by-enabled');
+    const request = index.getAll(1);
+    request.onsuccess = () => {
+      const skills = (request.result as any[]).map((s) => ({ ...s, enabled: true }));
+      resolve(skills);
     };
     request.onerror = () => reject(request.error);
   });

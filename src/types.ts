@@ -76,7 +76,9 @@ export interface CompactPayload {
   groupId: string;
   messages: ConversationMessage[];
   systemPrompt: string;
+  provider: 'anthropic' | 'ollama';
   apiKey: string;
+  ollamaUrl: string;
   model: string;
   maxTokens: number;
 }
@@ -85,10 +87,13 @@ export interface InvokePayload {
   groupId: string;
   messages: ConversationMessage[];
   systemPrompt: string;
+  provider: 'anthropic' | 'ollama';
   apiKey: string;
+  ollamaUrl: string;
   model: string;
   maxTokens: number;
 }
+
 
 /** Messages sent from Agent Worker → main thread */
 export type WorkerOutbound =
@@ -118,6 +123,22 @@ export interface ThinkingLogEntry {
   timestamp: number;
   label: string;
   detail?: string;
+}
+
+/** Agent skill loaded from a SKILL.md file */
+export interface Skill {
+  id: string;
+  name: string;
+  description: string;
+  content: string;
+  enabled: boolean;
+  sourceUrl?: string;    // Original URL entered by user
+  repoUrl?: string;      // GitHub repo root URL (for syncing)
+  repoBranch?: string;   // Branch (for syncing)
+  repoPath?: string;     // Path to skill dir or file within repo (for syncing)
+  isFile?: boolean;      // True when sourced from a single file (not a directory)
+  createdAt: number;
+  updatedAt: number;
 }
 
 /** Tool definition for Claude API */

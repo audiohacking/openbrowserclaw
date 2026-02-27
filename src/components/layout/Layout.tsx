@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 
 import { Outlet, NavLink } from 'react-router';
-import { MessageSquare, FolderOpen, Clock, Settings } from 'lucide-react';
+import { MessageSquare, FolderOpen, Clock, Settings, Zap } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle.js';
 import { FileViewerModal } from '../files/FileViewerModal.js';
 import { useFileViewerStore } from '../../stores/file-viewer-store.js';
@@ -12,6 +12,7 @@ const navItems = [
   { to: '/chat', label: 'Chat', icon: MessageSquare },
   { to: '/files', label: 'Files', icon: FolderOpen },
   { to: '/tasks', label: 'Tasks', icon: Clock },
+  { to: '/skills', label: 'Skills', icon: Zap },
   { to: '/settings', label: 'Settings', icon: Settings },
 ] as const;
 
