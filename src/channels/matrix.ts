@@ -62,7 +62,7 @@ export class MatrixChannel implements Channel {
       const res = await tmpClient.login('m.login.password', {
         user: this.userId,
         password: this.password,
-        initial_device_display_name: 'OpenBrowserClaw',
+        initial_device_display_name: 'browclaw',
       });
       accessToken = res.access_token;
       deviceId = res.device_id;
