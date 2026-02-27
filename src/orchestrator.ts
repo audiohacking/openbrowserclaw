@@ -19,6 +19,7 @@ import type {
   Task,
   ConversationMessage,
   ThinkingLogEntry,
+  Skill,
 } from './types.js';
 import {
   ASSISTANT_NAME,
@@ -40,6 +41,7 @@ import {
   setConfig,
   saveTask,
   clearGroupMessages,
+  getEnabledSkills,
 } from './db.js';
 import { readGroupFile } from './storage.js';
 import { encryptValue, decryptValue } from './crypto.js';
@@ -321,8 +323,11 @@ export class Orchestrator {
       // No memory file yet
     }
 
+    // Load active skills
+    const skills = await getEnabledSkills();
+
     const messages = await buildConversationMessages(groupId, CONTEXT_WINDOW_SIZE);
-    const systemPrompt = buildSystemPrompt(this.assistantName, memory);
+    const systemPrompt = buildSystemPrompt(this.assistantName, memory, skills);
 
     this.agentWorker.postMessage({
       type: 'compact',
@@ -444,10 +449,13 @@ export class Orchestrator {
       // No memory file yet — that's fine
     }
 
+    // Load active skills
+    const skills = await getEnabledSkills();
+
     // Build conversation context
     const messages = await buildConversationMessages(groupId, CONTEXT_WINDOW_SIZE);
 
-    const systemPrompt = buildSystemPrompt(this.assistantName, memory);
+    const systemPrompt = buildSystemPrompt(this.assistantName, memory, skills);
 
     // Send to agent worker
     this.agentWorker.postMessage({
@@ -576,7 +584,7 @@ export class Orchestrator {
 // System prompt builder
 // ---------------------------------------------------------------------------
 
-function buildSystemPrompt(assistantName: string, memory: string): string {
+function buildSystemPrompt(assistantName: string, memory: string, skills: Skill[] = []): string {
   const parts = [
     `You are ${assistantName}, a personal AI assistant running in the user's browser.`,
     '',
@@ -595,6 +603,16 @@ function buildSystemPrompt(assistantName: string, memory: string): string {
     '- For scheduled tasks, confirm the schedule with the user.',
     '- Strip <internal> tags from your responses — they are for your internal reasoning only.',
   ];
+
+  if (skills.length > 0) {
+    parts.push('', '## Agent Skills', '');
+    parts.push('The following agent skills extend your capabilities:');
+    for (const skill of skills) {
+      parts.push('', `### ${skill.name}`, '');
+      if (skill.description) parts.push(skill.description, '');
+      parts.push(skill.content);
+    }
+  }
 
   if (memory) {
     parts.push('', '## Persistent Memory', '', memory);

@@ -125,6 +125,22 @@ export interface ThinkingLogEntry {
   detail?: string;
 }
 
+/** Agent skill loaded from a SKILL.md file */
+export interface Skill {
+  id: string;
+  name: string;
+  description: string;
+  content: string;
+  enabled: boolean;
+  sourceUrl?: string;    // Original URL entered by user
+  repoUrl?: string;      // GitHub repo root URL (for syncing)
+  repoBranch?: string;   // Branch (for syncing)
+  repoPath?: string;     // Path to skill dir or file within repo (for syncing)
+  isFile?: boolean;      // True when sourced from a single file (not a directory)
+  createdAt: number;
+  updatedAt: number;
+}
+
 /** Tool definition for Claude API */
 export interface ToolDefinition {
   name: string;

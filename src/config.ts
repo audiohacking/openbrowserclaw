@@ -56,7 +56,7 @@ export const FETCH_MAX_RESPONSE = 20_000;
 export const DB_NAME = 'openbrowserclaw';
 
 /** IndexedDB version */
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 
 /** OPFS root directory name */
 export const OPFS_ROOT = 'openbrowserclaw';
