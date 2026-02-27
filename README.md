@@ -1,8 +1,6 @@
 # browclaw
 
-> **Disclaimer:** browclaw is a personal, open-source project. It is **not** affiliated with any cryptocurrency, meme coin, token, or social media account. If you see coins, tokens, or social media profiles claiming association with this project, they are **not legitimate** and are not endorsed by the author(s). Stay safe and do your own research.
-
-Browser-native personal AI assistant. Zero infrastructure — the browser is the server.
+Experimental Browser-native personal AI assistant. Zero infrastructure — the browser is the server.
 
 Built as a browser-only reimagination of NanoClaw. Same philosophy, small enough to understand, built for one user, but running entirely in a browser tab.
 
