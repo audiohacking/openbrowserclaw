@@ -344,6 +344,9 @@ export function SettingsPage() {
       <div className="card card-bordered bg-base-200">
         <div className="card-body p-4 sm:p-6 gap-3">
           <h3 className="card-title text-base gap-2"><Smartphone className="w-4 h-4" /> Telegram Bot</h3>
+          <p className="text-xs opacity-60">
+            Create a bot via <strong>@BotFather</strong> on Telegram to get a token, then send <code>/chatid</code> to your bot to retrieve allowed chat IDs.
+          </p>
           <fieldset className="fieldset">
             <legend className="fieldset-legend">Bot Token</legend>
             <input
@@ -384,6 +387,9 @@ export function SettingsPage() {
       <div className="card card-bordered bg-base-200">
         <div className="card-body p-4 sm:p-6 gap-3">
           <h3 className="card-title text-base gap-2"><Cloud className="w-4 h-4" /> Bluesky DMs</h3>
+          <p className="text-xs opacity-60">
+            Receives and replies to Bluesky DMs. Use an <strong>App Password</strong> (not your main password): go to <strong>bsky.social → Settings → Privacy and Security → App Passwords</strong>.
+          </p>
           <fieldset className="fieldset">
             <legend className="fieldset-legend">Handle</legend>
             <input
@@ -411,7 +417,6 @@ export function SettingsPage() {
                 {bskyPasswordMasked ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
               </button>
             </div>
-            <p className="fieldset-label opacity-60">Use an app password from bsky.social → Settings → App Passwords</p>
           </fieldset>
           <div className="flex items-center gap-2">
             <button
@@ -432,6 +437,9 @@ export function SettingsPage() {
       <div className="card card-bordered bg-base-200">
         <div className="card-body p-4 sm:p-6 gap-3">
           <h3 className="card-title text-base gap-2"><MessageSquare className="w-4 h-4" /> Matrix</h3>
+          <p className="text-xs opacity-60">
+            Listens to all joined Matrix rooms for messages. Enter your homeserver URL (e.g. <code>https://matrix.org</code>), your full Matrix user ID (e.g. <code>@you:matrix.org</code>), and your account password.
+          </p>
           <fieldset className="fieldset">
             <legend className="fieldset-legend">Homeserver URL</legend>
             <input
