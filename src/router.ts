@@ -1,12 +1,12 @@
 // ---------------------------------------------------------------------------
 // OpenBrowserClaw — Message router
 // ---------------------------------------------------------------------------
+//
+// Optional channels (Telegram, Bluesky, Matrix) are passed as getters so they
+// can be lazy-loaded only when configured — avoids pulling in heavy SDKs at startup.
 
 import type { Channel } from './types.js';
-import { BrowserChatChannel } from './channels/browser-chat.js';
-import { TelegramChannel } from './channels/telegram.js';
-import { BlueskyChannel } from './channels/bluesky.js';
-import { MatrixChannel } from './channels/matrix.js';
+import type { BrowserChatChannel } from './channels/browser-chat.js';
 
 /**
  * Routes outbound messages and typing indicators to the correct channel
@@ -14,16 +14,16 @@ import { MatrixChannel } from './channels/matrix.js';
  *
  * Prefix mapping:
  *   "br:"   → BrowserChatChannel
- *   "tg:"   → TelegramChannel
- *   "bsky:" → BlueskyChannel
- *   "mx:"   → MatrixChannel
+ *   "tg:"   → TelegramChannel (if loaded)
+ *   "bsky:" → BlueskyChannel (if loaded)
+ *   "mx:"   → MatrixChannel (if loaded)
  */
 export class Router {
   constructor(
     private browserChat: BrowserChatChannel,
-    private telegram: TelegramChannel | null,
-    private bluesky: BlueskyChannel | null,
-    private matrix: MatrixChannel | null,
+    private getTelegram: () => Channel | null,
+    private getBluesky: () => Channel | null,
+    private getMatrix: () => Channel | null,
   ) {}
 
   /**
@@ -75,13 +75,13 @@ export class Router {
 
   private findChannel(groupId: string): Channel | null {
     if (groupId.startsWith('tg:')) {
-      return this.telegram;
+      return this.getTelegram();
     }
     if (groupId.startsWith('bsky:')) {
-      return this.bluesky;
+      return this.getBluesky();
     }
     if (groupId.startsWith('mx:')) {
-      return this.matrix;
+      return this.getMatrix();
     }
     return this.browserChat;
   }

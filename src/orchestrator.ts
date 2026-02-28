@@ -20,6 +20,7 @@ import type {
   ConversationMessage,
   ThinkingLogEntry,
   Skill,
+  Channel,
 } from './types.js';
 import {
   ASSISTANT_NAME,
@@ -46,9 +47,6 @@ import {
 import { readGroupFile } from './storage.js';
 import { encryptValue, decryptValue } from './crypto.js';
 import { BrowserChatChannel } from './channels/browser-chat.js';
-import { TelegramChannel } from './channels/telegram.js';
-import { BlueskyChannel } from './channels/bluesky.js';
-import { MatrixChannel } from './channels/matrix.js';
 import { Router } from './router.js';
 import { TaskScheduler } from './task-scheduler.js';
 import { ulid } from './ulid.js';
@@ -98,9 +96,12 @@ class EventBus {
 export class Orchestrator {
   readonly events = new EventBus();
   readonly browserChat = new BrowserChatChannel();
-  readonly telegram = new TelegramChannel();
-  readonly bluesky = new BlueskyChannel();
-  readonly matrix = new MatrixChannel();
+  /** Lazy-loaded when Telegram is configured — avoids loading Telegram code at startup */
+  private _telegram: Channel | null = null;
+  /** Lazy-loaded when Bluesky is configured — avoids loading @atproto/api at startup */
+  private _bluesky: Channel | null = null;
+  /** Lazy-loaded when Matrix is configured — avoids loading matrix-js-sdk at startup */
+  private _matrix: Channel | null = null;
 
   private router!: Router;
   private scheduler!: TaskScheduler;
@@ -149,39 +150,51 @@ export class Orchestrator {
       10,
     );
 
-    // Set up router
-    this.router = new Router(this.browserChat, this.telegram, this.bluesky, this.matrix);
+    // Set up router with getters so optional channels are resolved at route time (lazy)
+    this.router = new Router(
+      this.browserChat,
+      () => this._telegram,
+      () => this._bluesky,
+      () => this._matrix,
+    );
 
     // Set up channels
     this.browserChat.onMessage((msg) => this.enqueue(msg));
 
-    // Configure Telegram if token exists
+    // Load optional channels only when configured — saves memory (no SDKs loaded by default)
     const telegramToken = await getConfig(CONFIG_KEYS.TELEGRAM_BOT_TOKEN);
     if (telegramToken) {
       const chatIdsRaw = await getConfig(CONFIG_KEYS.TELEGRAM_CHAT_IDS);
       const chatIds: string[] = chatIdsRaw ? JSON.parse(chatIdsRaw) : [];
-      this.telegram.configure(telegramToken, chatIds);
-      this.telegram.onMessage((msg) => this.enqueue(msg));
-      this.telegram.start();
+      const { TelegramChannel } = await import('./channels/telegram.js');
+      const ch = new TelegramChannel();
+      ch.configure(telegramToken, chatIds);
+      ch.onMessage((msg) => this.enqueue(msg));
+      ch.start();
+      this._telegram = ch;
     }
 
-    // Configure Bluesky if credentials exist
     const bskyIdentifier = await getConfig(CONFIG_KEYS.BLUESKY_IDENTIFIER);
     const bskyPassword = await getConfig(CONFIG_KEYS.BLUESKY_PASSWORD);
     if (bskyIdentifier && bskyPassword) {
-      this.bluesky.configure(bskyIdentifier, bskyPassword);
-      this.bluesky.onMessage((msg) => this.enqueue(msg));
-      this.bluesky.start();
+      const { BlueskyChannel } = await import('./channels/bluesky.js');
+      const ch = new BlueskyChannel();
+      ch.configure(bskyIdentifier, bskyPassword);
+      ch.onMessage((msg) => this.enqueue(msg));
+      await ch.start();
+      this._bluesky = ch;
     }
 
-    // Configure Matrix if credentials exist
     const matrixHomeserver = await getConfig(CONFIG_KEYS.MATRIX_HOMESERVER);
     const matrixUserId = await getConfig(CONFIG_KEYS.MATRIX_USER_ID);
     const matrixPassword = await getConfig(CONFIG_KEYS.MATRIX_PASSWORD);
     if (matrixHomeserver && matrixUserId && matrixPassword) {
-      this.matrix.configure(matrixHomeserver, matrixUserId, matrixPassword);
-      this.matrix.onMessage((msg) => this.enqueue(msg));
-      this.matrix.start();
+      const { MatrixChannel } = await import('./channels/matrix.js');
+      const ch = new MatrixChannel();
+      ch.configure(matrixHomeserver, matrixUserId, matrixPassword);
+      ch.onMessage((msg) => this.enqueue(msg));
+      await ch.start();
+      this._matrix = ch;
     }
 
     // Set up agent worker
@@ -286,30 +299,37 @@ export class Orchestrator {
   }
 
   /**
-   * Configure Telegram.
+   * Configure Telegram. Loads the Telegram channel module only when first configured.
    */
   async configureTelegram(token: string, chatIds: string[]): Promise<void> {
     await setConfig(CONFIG_KEYS.TELEGRAM_BOT_TOKEN, token);
     await setConfig(CONFIG_KEYS.TELEGRAM_CHAT_IDS, JSON.stringify(chatIds));
-    this.telegram.configure(token, chatIds);
-    this.telegram.onMessage((msg) => this.enqueue(msg));
-    this.telegram.start();
+    this._telegram?.stop();
+    const { TelegramChannel } = await import('./channels/telegram.js');
+    const ch = new TelegramChannel();
+    ch.configure(token, chatIds);
+    ch.onMessage((msg) => this.enqueue(msg));
+    ch.start();
+    this._telegram = ch;
   }
 
   /**
-   * Configure Bluesky DM channel.
+   * Configure Bluesky DM channel. Loads @atproto/api only when first configured.
    */
   async configureBluesky(identifier: string, password: string): Promise<void> {
     await setConfig(CONFIG_KEYS.BLUESKY_IDENTIFIER, identifier);
     await setConfig(CONFIG_KEYS.BLUESKY_PASSWORD, password);
-    this.bluesky.stop();
-    this.bluesky.configure(identifier, password);
-    this.bluesky.onMessage((msg) => this.enqueue(msg));
-    await this.bluesky.start();
+    this._bluesky?.stop();
+    const { BlueskyChannel } = await import('./channels/bluesky.js');
+    const ch = new BlueskyChannel();
+    ch.configure(identifier, password);
+    ch.onMessage((msg) => this.enqueue(msg));
+    await ch.start();
+    this._bluesky = ch;
   }
 
   /**
-   * Configure Matrix channel.
+   * Configure Matrix channel. Loads matrix-js-sdk only when first configured.
    */
   async configureMatrix(
     homeserverUrl: string,
@@ -319,10 +339,13 @@ export class Orchestrator {
     await setConfig(CONFIG_KEYS.MATRIX_HOMESERVER, homeserverUrl);
     await setConfig(CONFIG_KEYS.MATRIX_USER_ID, userId);
     await setConfig(CONFIG_KEYS.MATRIX_PASSWORD, password);
-    this.matrix.stop();
-    this.matrix.configure(homeserverUrl, userId, password);
-    this.matrix.onMessage((msg) => this.enqueue(msg));
-    await this.matrix.start();
+    this._matrix?.stop();
+    const { MatrixChannel } = await import('./channels/matrix.js');
+    const ch = new MatrixChannel();
+    ch.configure(homeserverUrl, userId, password);
+    ch.onMessage((msg) => this.enqueue(msg));
+    await ch.start();
+    this._matrix = ch;
   }
 
   /**
@@ -401,9 +424,9 @@ export class Orchestrator {
    */
   shutdown(): void {
     this.scheduler.stop();
-    this.telegram.stop();
-    this.bluesky.stop();
-    this.matrix.stop();
+    this._telegram?.stop();
+    this._bluesky?.stop();
+    this._matrix?.stop();
     this.agentWorker.terminate();
   }
 
