@@ -70,6 +70,13 @@ export const OPFS_ROOT = 'openbrowserclaw';
 /** Default group for browser chat */
 export const DEFAULT_GROUP_ID = 'br:main';
 
+/**
+ * Optional integrations are disabled by default to avoid crashes from heavy SDKs.
+ * Set at build time via env: VITE_ENABLE_BLUESKY=true and/or VITE_ENABLE_MATRIX=true
+ */
+export const ENABLE_BLUESKY = import.meta.env.VITE_ENABLE_BLUESKY === 'true';
+export const ENABLE_MATRIX = import.meta.env.VITE_ENABLE_MATRIX === 'true';
+
 /** Config keys */
 export const CONFIG_KEYS = {
   ANTHROPIC_API_KEY: 'anthropic_api_key',

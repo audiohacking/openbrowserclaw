@@ -26,11 +26,13 @@ import {
   ASSISTANT_NAME,
   CONFIG_KEYS,
   CONTEXT_WINDOW_SIZE,
-DEFAULT_GROUP_ID,
+  DEFAULT_GROUP_ID,
   DEFAULT_MAX_TOKENS,
   DEFAULT_MODEL,
   DEFAULT_PROVIDER,
   DEFAULT_OLLAMA_URL,
+  ENABLE_BLUESKY,
+  ENABLE_MATRIX,
   buildTriggerPattern,
 } from './config.js';
 import {
@@ -174,27 +176,31 @@ export class Orchestrator {
       this._telegram = ch;
     }
 
-    const bskyIdentifier = await getConfig(CONFIG_KEYS.BLUESKY_IDENTIFIER);
-    const bskyPassword = await getConfig(CONFIG_KEYS.BLUESKY_PASSWORD);
-    if (bskyIdentifier && bskyPassword) {
-      const { BlueskyChannel } = await import('./channels/bluesky.js');
-      const ch = new BlueskyChannel();
-      ch.configure(bskyIdentifier, bskyPassword);
-      ch.onMessage((msg) => this.enqueue(msg));
-      await ch.start();
-      this._bluesky = ch;
+    if (ENABLE_BLUESKY) {
+      const bskyIdentifier = await getConfig(CONFIG_KEYS.BLUESKY_IDENTIFIER);
+      const bskyPassword = await getConfig(CONFIG_KEYS.BLUESKY_PASSWORD);
+      if (bskyIdentifier && bskyPassword) {
+        const { BlueskyChannel } = await import('./channels/bluesky.js');
+        const ch = new BlueskyChannel();
+        ch.configure(bskyIdentifier, bskyPassword);
+        ch.onMessage((msg) => this.enqueue(msg));
+        await ch.start();
+        this._bluesky = ch;
+      }
     }
 
-    const matrixHomeserver = await getConfig(CONFIG_KEYS.MATRIX_HOMESERVER);
-    const matrixUserId = await getConfig(CONFIG_KEYS.MATRIX_USER_ID);
-    const matrixPassword = await getConfig(CONFIG_KEYS.MATRIX_PASSWORD);
-    if (matrixHomeserver && matrixUserId && matrixPassword) {
-      const { MatrixChannel } = await import('./channels/matrix.js');
-      const ch = new MatrixChannel();
-      ch.configure(matrixHomeserver, matrixUserId, matrixPassword);
-      ch.onMessage((msg) => this.enqueue(msg));
-      await ch.start();
-      this._matrix = ch;
+    if (ENABLE_MATRIX) {
+      const matrixHomeserver = await getConfig(CONFIG_KEYS.MATRIX_HOMESERVER);
+      const matrixUserId = await getConfig(CONFIG_KEYS.MATRIX_USER_ID);
+      const matrixPassword = await getConfig(CONFIG_KEYS.MATRIX_PASSWORD);
+      if (matrixHomeserver && matrixUserId && matrixPassword) {
+        const { MatrixChannel } = await import('./channels/matrix.js');
+        const ch = new MatrixChannel();
+        ch.configure(matrixHomeserver, matrixUserId, matrixPassword);
+        ch.onMessage((msg) => this.enqueue(msg));
+        await ch.start();
+        this._matrix = ch;
+      }
     }
 
     // Set up agent worker
@@ -314,11 +320,12 @@ export class Orchestrator {
   }
 
   /**
-   * Configure Bluesky DM channel. Loads @atproto/api only when first configured.
+   * Configure Bluesky DM channel. No-op unless VITE_ENABLE_BLUESKY=true at build time.
    */
   async configureBluesky(identifier: string, password: string): Promise<void> {
     await setConfig(CONFIG_KEYS.BLUESKY_IDENTIFIER, identifier);
     await setConfig(CONFIG_KEYS.BLUESKY_PASSWORD, password);
+    if (!ENABLE_BLUESKY) return;
     this._bluesky?.stop();
     const { BlueskyChannel } = await import('./channels/bluesky.js');
     const ch = new BlueskyChannel();
@@ -329,7 +336,7 @@ export class Orchestrator {
   }
 
   /**
-   * Configure Matrix channel. Loads matrix-js-sdk only when first configured.
+   * Configure Matrix channel. No-op unless VITE_ENABLE_MATRIX=true at build time.
    */
   async configureMatrix(
     homeserverUrl: string,
@@ -339,6 +346,7 @@ export class Orchestrator {
     await setConfig(CONFIG_KEYS.MATRIX_HOMESERVER, homeserverUrl);
     await setConfig(CONFIG_KEYS.MATRIX_USER_ID, userId);
     await setConfig(CONFIG_KEYS.MATRIX_PASSWORD, password);
+    if (!ENABLE_MATRIX) return;
     this._matrix?.stop();
     const { MatrixChannel } = await import('./channels/matrix.js');
     const ch = new MatrixChannel();

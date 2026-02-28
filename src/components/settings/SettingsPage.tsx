@@ -8,7 +8,7 @@ import {
   Smartphone, HardDrive, Lock, Check, Cloud,
 } from 'lucide-react';
 import { getConfig, setConfig } from '../../db.js';
-import { CONFIG_KEYS } from '../../config.js';
+import { CONFIG_KEYS, ENABLE_BLUESKY, ENABLE_MATRIX } from '../../config.js';
 import { getStorageEstimate, requestPersistentStorage } from '../../storage.js';
 import { decryptValue } from '../../crypto.js';
 import { getOrchestrator } from '../../stores/orchestrator-store.js';
@@ -383,7 +383,8 @@ export function SettingsPage() {
         </div>
       </div>
 
-      {/* ---- Bluesky ---- */}
+      {/* ---- Bluesky (only when VITE_ENABLE_BLUESKY=true) ---- */}
+      {ENABLE_BLUESKY && (
       <div className="card card-bordered bg-base-200">
         <div className="card-body p-4 sm:p-6 gap-3">
           <h3 className="card-title text-base gap-2"><Cloud className="w-4 h-4" /> Bluesky DMs</h3>
@@ -432,8 +433,10 @@ export function SettingsPage() {
           </div>
         </div>
       </div>
+      )}
 
-      {/* ---- Matrix ---- */}
+      {/* ---- Matrix (only when VITE_ENABLE_MATRIX=true) ---- */}
+      {ENABLE_MATRIX && (
       <div className="card card-bordered bg-base-200">
         <div className="card-body p-4 sm:p-6 gap-3">
           <h3 className="card-title text-base gap-2"><MessageSquare className="w-4 h-4" /> Matrix</h3>
@@ -492,6 +495,7 @@ export function SettingsPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* ---- Storage ---- */}
       <div className="card card-bordered bg-base-200">

@@ -180,6 +180,14 @@ npm run preview    # Preview production build
 npm run typecheck  # TypeScript type checking
 ```
 
+Bluesky and Matrix integrations are **disabled by default** (no SDKs loaded) to keep the app slim and avoid startup crashes. To enable them at build time:
+
+```bash
+VITE_ENABLE_BLUESKY=true VITE_ENABLE_MATRIX=true npm run dev
+# or for production build:
+VITE_ENABLE_BLUESKY=true VITE_ENABLE_MATRIX=true npm run build
+```
+
 ## Deploy
 
 ```bash
